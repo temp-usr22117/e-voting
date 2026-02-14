@@ -13,6 +13,7 @@
     "test": "cd backend && npm test || true"
   },
   "devDependencies": {
+    "baseline-browser-mapping": "^2.9.19",
     "concurrently": "^8.0.0"
   },
   "dependencies": {
