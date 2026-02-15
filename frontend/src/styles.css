@@ -39,7 +39,22 @@ body{
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Blockchain-themed animated background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background-image: url('/bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.8; /* adjust transparency */
+}
+
+/* Blockchain-themed animated background
 body::before {
   content: '';
   position: fixed;
@@ -52,9 +67,9 @@ body::before {
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
   opacity: 0.15;
-}
+} */
 
-/* Hexagonal grid pattern overlay */
+/* Hexagonal grid pattern overlay
 body::after {
   content: '';
   position: fixed;
@@ -74,7 +89,7 @@ body::after {
   background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
   background-color: #f8fafc;
   transition: background-color 0.3s ease;
-}
+} */
 
 /* Dark mode background adjustments */
 body.dark-mode::before {
@@ -241,6 +256,15 @@ h1, h2, h3, h4, h5, h6{
   padding: 6px 10px;
   border-radius: 6px;
   transition: background 0.3s ease, color 0.3s ease;
+}
+
+.hero p {
+  margin: 6px 0 0;
+  color: #000000;
+}
+
+body.dark-mode .hero p {
+  color: #ffffff;
 }
 
 body.dark-mode .info-box{

@@ -803,4 +803,4 @@ The result is a **robust, secure, and user-friendly voting platform** ready for 
 
 **Last Updated**: November 5, 2025  
 **Project**: Blockchain E-Voting System  
-**Repository**: https://github.com/reetik-rana/Blockchain-e-voting
+**Repository**: https://github.com/mclovin22117/Blockchain-e-voting

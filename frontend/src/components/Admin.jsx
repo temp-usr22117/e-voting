@@ -10,7 +10,7 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
   const [voterAddress, setVoterAddress] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
-  const [txStatus, setTxStatus] = useState(null) // 'pending', 'success', 'error'
+  const [txStatus, setTxStatus] = useState(null)
   const [txHash, setTxHash] = useState(null)
   const [txError, setTxError] = useState(null)
   
@@ -18,33 +18,43 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
   const [votingStart, setVotingStart] = useState('')
   const [votingEnd, setVotingEnd] = useState('')
   const [currentVotingPeriod, setCurrentVotingPeriod] = useState(null)
-  const [votingStatus, setVotingStatus] = useState('not-set') // 'not-set', 'upcoming', 'active', 'ended'
+  const [votingStatus, setVotingStatus] = useState('not-set')
   const [votingPeriodSet, setVotingPeriodSet] = useState(false)
-
+  
+  // Track when account changes to update isOwner
   useEffect(() => {
+    if (owner && account) {
+      const match = account.toLowerCase() === owner.toLowerCase()
+      setIsOwner(match)
+    } else {
+      setIsOwner(false)
+    }
+  }, [account, owner])
+
+  // Load owner and voting period info once when contract info is available
+  useEffect(() => {
+    let mounted = true
+    
     async function loadOwner() {
       try {
         if (!contractInfo || networkMismatch) {
-          console.log('[Admin] No contract info or network mismatch', { contractInfo, networkMismatch })
           return
         }
-        // prefer wallet provider for tx, but fall back to HTTP for read
+
         const web3 = window.ethereum ? new Web3(window.ethereum) : new Web3(config.rpcUrl)
         const contractAddr = selectedAddress || contractInfo.address
-        console.log('[Admin] Loading owner from contract:', contractAddr)
         const election = new web3.eth.Contract(contractInfo.abi, contractAddr)
         const o = await election.methods.owner().call()
-        console.log('[Admin] Contract owner:', o)
-        console.log('[Admin] Current account:', account)
-        console.log('[Admin] Owner match:', account && o && account.toLowerCase() === o.toLowerCase())
+        
+        if (!mounted) return
         setOwner(o)
-        setIsOwner(account && o && account.toLowerCase() === o.toLowerCase())
         
         // Load voting period
         const start = await election.methods.votingStart().call()
         const end = await election.methods.votingEnd().call()
         const periodSet = await election.methods.votingPeriodSet().call()
         
+        if (!mounted) return
         setVotingPeriodSet(periodSet)
         
         if (periodSet) {
@@ -65,7 +75,9 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
       }
     }
     loadOwner()
-  }, [contractInfo, account, networkMismatch, selectedAddress])
+    
+    return () => { mounted = false }
+  }, [contractInfo, networkMismatch, selectedAddress])
 
   async function addCandidate() {
     const name = candidateName.trim()
@@ -73,7 +85,6 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
       setNote('Enter a candidate name')
       return
     }
-    // Prevent Ethereum addresses from being used as candidate names
     if (/^0x[a-fA-F0-9]{40}$/.test(name)) {
       setNote('Candidate name cannot be an Ethereum address')
       return
@@ -121,7 +132,6 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
       setNote('Enter voter address')
       return
     }
-    // Validate Ethereum address format
     if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
       setNote('Invalid Ethereum address format')
       return
@@ -145,7 +155,6 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
       setNote(`Voter ${addr} registered`)
       onActionSuccess && onActionSuccess()
       
-      // Auto-hide success after 3 seconds
       setTimeout(() => {
         setTxStatus(null)
         setNote('')
@@ -200,7 +209,6 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
       setNote('Voting period set successfully')
       onActionSuccess && onActionSuccess()
       
-      // Auto-hide success after 3 seconds
       setTimeout(() => {
         setTxStatus(null)
         setNote('')
@@ -241,7 +249,6 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
       setNote('Voting period cancelled successfully')
       onActionSuccess && onActionSuccess()
       
-      // Auto-hide success after 3 seconds
       setTimeout(() => {
         setTxStatus(null)
         setNote('')

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Web3 } from 'web3'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, Navigate } from 'react-router-dom'
 import Auth from './components/Auth'
@@ -30,11 +30,11 @@ function App() {
   const [networkMismatch, setNetworkMismatch] = useState(null)
   const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(null)
   const [ownerAddress, setOwnerAddress] = useState(null)
-  const lastAutoLoginAccount = React.useRef(null)
+  const lastAutoLoginAccount = useRef(null)
   const [loginTrigger, setLoginTrigger] = useState(0)
   
   // Voting period state
-  const [votingStatus, setVotingStatus] = useState('loading') // 'loading', 'not-set', 'upcoming', 'active', 'ended'
+  const [votingStatus, setVotingStatus] = useState('loading')
   const [votingPeriod, setVotingPeriod] = useState(null)
   
   // Dark mode state
@@ -100,6 +100,8 @@ function App() {
 
   // Load live candidates/counts from chain when contractInfo present
   useEffect(() => {
+    let mounted = true
+    
     async function loadFromChain() {
       if (!contractInfo || !window.ethereum) return
       try {
@@ -112,29 +114,42 @@ function App() {
         if (!addressForCurrent) {
           const targetId = Number(contractInfo.networkId)
           if (currentId !== targetId) {
-            setNetworkMismatch({ currentId, targetId })
-            setChainCandidates(null)
+            if (mounted) {
+              setNetworkMismatch({ currentId, targetId })
+              setChainCandidates(null)
+            }
             return
           }
-          setNetworkMismatch(null)
+          if (mounted) setNetworkMismatch(null)
         } else {
           // We have a contract deployed on this network id; proceed without mismatch
-          setNetworkMismatch(null)
+          if (mounted) setNetworkMismatch(null)
         }
-  const election = new web3.eth.Contract(contractInfo.abi, electionAddress)
-  setSelectedAddress(electionAddress)
+        
+        const election = new web3.eth.Contract(contractInfo.abi, electionAddress)
+        if (mounted) setSelectedAddress(electionAddress)
+        
         const count = await election.methods.candidatesCount().call()
         const list = []
         for (let i = 1; i <= Number(count); i++) {
           const c = await election.methods.getCandidate(i).call()
           list.push({ id: Number(c[0]), name: c[1], voteCount: Number(c[2]) })
         }
-        setChainCandidates(list)
+        if (mounted) setChainCandidates(list)
+        
         // Load contract owner (for admin auto-detect). Try wallet provider first, then HTTP fallback.
         try {
           const o = await election.methods.owner().call()
           console.log('[App] Contract owner loaded:', o)
-          setOwnerAddress(o)
+          // Only update if value actually changed to prevent triggering downstream effects
+          if (mounted) {
+            setOwnerAddress(prev => {
+              if (prev && prev.toLowerCase() === o.toLowerCase()) {
+                return prev // Don't trigger re-render if same value
+              }
+              return o
+            })
+          }
         } catch (err) {
           console.warn('[App] Failed to load owner from wallet provider:', err)
           // fallback: try local HTTP provider against the network-matched address
@@ -146,14 +161,22 @@ function App() {
             const e2 = new w3.eth.Contract(contractInfo.abi, addrFor)
             const o2 = await e2.methods.owner().call()
             console.log('[App] Contract owner loaded (fallback):', o2)
-            setOwnerAddress(o2)
+            if (mounted) {
+              setOwnerAddress(prev => {
+                if (prev && prev.toLowerCase() === o2.toLowerCase()) {
+                  return prev // Don't trigger re-render if same value
+                }
+                return o2
+              })
+            }
           } catch (err2) { 
             console.error('[App] Failed to load owner (fallback):', err2)
-            setOwnerAddress(null) 
+            if (mounted) setOwnerAddress(null)
           }
         }
+        
         // Check registration status for current account if present
-        if (account) {
+        if (account && mounted) {
           try {
             const reg = await election.methods.registered(account).call()
             setIsRegisteredOnChain(!!reg)
@@ -166,6 +189,8 @@ function App() {
       }
     }
     loadFromChain()
+    
+    return () => { mounted = false }
   }, [contractInfo, lastVote, account])
 
   // Check voting period status
@@ -183,8 +208,8 @@ function App() {
         const votingPeriodSet = await election.methods.votingPeriodSet().call()
         
         if (!votingPeriodSet) {
-          setVotingStatus('not-set')
-          setVotingPeriod(null)
+          setVotingStatus(prev => prev === 'not-set' ? prev : 'not-set')
+          setVotingPeriod(prev => prev === null ? prev : null)
           return
         }
         
@@ -193,20 +218,31 @@ function App() {
         const startNum = Number(start)
         const endNum = Number(end)
         
-        setVotingPeriod({ start: startNum, end: endNum })
+        // Only update if values actually changed
+        setVotingPeriod(prev => {
+          if (prev && prev.start === startNum && prev.end === endNum) {
+            return prev // Don't create new object if values are same
+          }
+          return { start: startNum, end: endNum }
+        })
         
         const now = Math.floor(Date.now() / 1000)
         
+        let newStatus
         if (now < startNum) {
-          setVotingStatus('upcoming')
+          newStatus = 'upcoming'
         } else if (now >= startNum && now <= endNum) {
-          setVotingStatus('active')
+          newStatus = 'active'
         } else {
-          setVotingStatus('ended')
+          newStatus = 'ended'
         }
+        
+        // Only update if status actually changed
+        setVotingStatus(prev => prev === newStatus ? prev : newStatus)
+        
       } catch (e) {
         console.error('[App] Error checking voting status:', e)
-        setVotingStatus('not-set')
+        setVotingStatus(prev => prev === 'not-set' ? prev : 'not-set')
       }
     }
     
@@ -389,7 +425,7 @@ function App() {
 
       // 3) Derive a hash we could send on-chain later (demonstration only)
       const web3 = new Web3(window.ethereum || Web3.givenProvider)
-  const voteHash = web3.utils.sha3(JSON.stringify({ cid, candidateId, voter: account }))
+      const voteHash = web3.utils.sha3(JSON.stringify({ cid, candidateId, voter: account }))
 
       // 4) Optionally call the contract to record the vote on-chain
       if (contractInfo && window.ethereum) {
