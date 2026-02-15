@@ -85,6 +85,7 @@ cd ..
 
 # 4. Deploy smart contract locally
 npx truffle migrate --reset --network development
+#use --reset only when you make major changes and want to reset the session
 # Note the deployed contract address
 
 # 5. Configure environment variables
