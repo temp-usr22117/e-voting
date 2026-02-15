@@ -208,8 +208,8 @@ function App() {
         const votingPeriodSet = await election.methods.votingPeriodSet().call()
         
         if (!votingPeriodSet) {
-          setVotingStatus('not-set')
-          setVotingPeriod(null)
+          setVotingStatus(prev => prev === 'not-set' ? prev : 'not-set')
+          setVotingPeriod(prev => prev === null ? prev : null)
           return
         }
         
@@ -218,20 +218,31 @@ function App() {
         const startNum = Number(start)
         const endNum = Number(end)
         
-        setVotingPeriod({ start: startNum, end: endNum })
+        // Only update if values actually changed
+        setVotingPeriod(prev => {
+          if (prev && prev.start === startNum && prev.end === endNum) {
+            return prev // Don't create new object if values are same
+          }
+          return { start: startNum, end: endNum }
+        })
         
         const now = Math.floor(Date.now() / 1000)
         
+        let newStatus
         if (now < startNum) {
-          setVotingStatus('upcoming')
+          newStatus = 'upcoming'
         } else if (now >= startNum && now <= endNum) {
-          setVotingStatus('active')
+          newStatus = 'active'
         } else {
-          setVotingStatus('ended')
+          newStatus = 'ended'
         }
+        
+        // Only update if status actually changed
+        setVotingStatus(prev => prev === newStatus ? prev : newStatus)
+        
       } catch (e) {
         console.error('[App] Error checking voting status:', e)
-        setVotingStatus('not-set')
+        setVotingStatus(prev => prev === 'not-set' ? prev : 'not-set')
       }
     }
     
