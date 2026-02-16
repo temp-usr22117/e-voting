@@ -859,10 +859,13 @@ function App() {
             </div>
           ) : null}
 
-          <VoteReceipt 
-            vote={lastVote} 
-            candidateName={lastVote && chainCandidates.find(c => c.id === lastVote.candidateId)?.name}
-          />
+          {/* Only show vote receipt for voters (not admins) who have voted */}
+          {user && user.role !== 'admin' && lastVote && (
+            <VoteReceipt 
+              vote={lastVote} 
+              candidateName={lastVote && chainCandidates.find(c => c.id === lastVote.candidateId)?.name}
+            />
+          )}
 
           {contractInfo && user && ownerAddress && user.address && ownerAddress && (user.address.toLowerCase() === ownerAddress.toLowerCase()) && !networkMismatch && (
             <Admin
