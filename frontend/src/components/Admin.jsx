@@ -263,6 +263,85 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
     }
   }
 
+  async function exportVotesData() {
+    if (!contractInfo || !account) return
+    
+    setBusy(true)
+    setNote('Exporting vote data...')
+    
+    try {
+      const web3 = new Web3(window.ethereum)
+      const contractAddr = selectedAddress || contractInfo.address
+      const election = new web3.eth.Contract(contractInfo.abi, contractAddr)
+      
+      // Get all candidates
+      const candidatesCount = await election.methods.candidatesCount().call()
+      const candidatesData = []
+      
+      for (let i = 1; i <= Number(candidatesCount); i++) {
+        const candidate = await election.methods.getCandidate(i).call()
+        candidatesData.push({
+          id: Number(candidate[0]),
+          name: candidate[1],
+          voteCount: Number(candidate[2])
+        })
+      }
+      
+      // Get voting period info
+      const start = currentVotingPeriod ? new Date(currentVotingPeriod.start * 1000).toISOString() : 'Not Set'
+      const end = currentVotingPeriod ? new Date(currentVotingPeriod.end * 1000).toISOString() : 'Not Set'
+      
+      // Create CSV content
+      let csvContent = '# Election Results Export\n'
+      csvContent += `# Contract Address: ${contractAddr}\n`
+      csvContent += `# Network ID: ${await web3.eth.net.getId()}\n`
+      csvContent += `# Voting Period: ${start} to ${end}\n`
+      csvContent += `# Exported: ${new Date().toISOString()}\n`
+      csvContent += `# Total Candidates: ${candidatesCount}\n\n`
+      
+      // Candidates summary
+      csvContent += 'Candidate ID,Candidate Name,Vote Count\n'
+      let totalVotes = 0
+      candidatesData.forEach(c => {
+        csvContent += `${c.id},"${c.name}",${c.voteCount}\n`
+        totalVotes += c.voteCount
+      })
+      csvContent += `\nTotal Votes Cast: ${totalVotes}\n\n`
+      
+      // Note about vote hashes
+      csvContent += '# Note: Individual vote hashes are stored on-chain\n'
+      csvContent += '# To retrieve specific voter data, query the contract directly using:\n'
+      csvContent += '# - hasVoted(address): Check if address has voted\n'
+      csvContent += '# - votes(address): Get candidate ID voted for\n'
+      csvContent += '# - voteHashes(address): Get IPFS vote hash\n'
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      
+      link.setAttribute('href', url)
+      link.setAttribute('download', `election-results-${timestamp}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      setNote(`✓ Exported ${totalVotes} votes for ${candidatesCount} candidates`)
+      
+      setTimeout(() => {
+        setNote('')
+      }, 5000)
+      
+    } catch (e) {
+      console.error('Export error:', e)
+      setNote('Failed to export votes: ' + e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!contractInfo || networkMismatch) return null
 
   return (
@@ -302,6 +381,28 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
           </div>
           
           <div style={{display:'grid',gap:10,marginTop:10}}>
+            {/* Export Election Data - Only show when voting has ended */}
+            {votingStatus === 'ended' && (
+              <div style={{padding:'12px', background:'#eff6ff', borderRadius:'8px', border:'1px solid #93c5fd'}}>
+                <label className="muted" style={{fontSize:13, fontWeight:600}}>📊 Export Election Results</label>
+                <div style={{fontSize:12, color:'#6b7280', marginTop:4, marginBottom:8}}>
+                  Download complete election data including all candidates and vote counts. 
+                  Individual vote hashes are stored on-chain and can be queried directly from the contract.
+                </div>
+                <button 
+                  className="vote-btn" 
+                  onClick={exportVotesData} 
+                  disabled={busy}
+                  style={{background:'#3b82f6', width:'100%'}}
+                >
+                  {busy ? 'Exporting...' : '📥 Download Election Results (CSV)'}
+                </button>
+                <div style={{fontSize:11, color:'#6b7280', marginTop:6}}>
+                  💡 Tip: Export results before scheduling a new voting period
+                </div>
+              </div>
+            )}
+
             {/* Set Voting Period */}
             <div style={{padding:'12px', background:'#fff7ed', borderRadius:'8px', border:'1px solid #fed7aa'}}>
               <label className="muted" style={{fontSize:13, fontWeight:600}}>⏰ Set Voting Period</label>
