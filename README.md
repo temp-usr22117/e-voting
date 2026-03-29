@@ -8,8 +8,8 @@ A secure, decentralized e-voting system built on Ethereum. Features admin-contro
 
 ## 🌐 Live Demo
 
-- **Frontend**: https://voting-frontend-x6so.onrender.com/ [suspended]
-- **Backend API**: https://blockchain-e-voting.onrender.com [suspended]
+- **Frontend**: https://voting-frontend-x6so.onrender.com/ [suspended until further notice]
+- **Backend API**: https://blockchain-e-voting.onrender.com [suspended until further notice]
 - **Smart Contract**: `0xD08Bbdcb80496e4d53a0Ae769b535306Bb513716` (Sepolia)
 - **Network**: Ethereum Sepolia Testnet
 - **Explorer**: https://sepolia.etherscan.io/address/0xD08Bbdcb80496e4d53a0Ae769b535306Bb513716
