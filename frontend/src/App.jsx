@@ -23,6 +23,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [toast, setToast] = useState({ message: '', type: 'info' })
   const [lastVote, setLastVote] = useState(null)
+  const [chainRefreshNonce, setChainRefreshNonce] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [contractInfo, setContractInfo] = useState(null)
   const [selectedAddress, setSelectedAddress] = useState(null)
@@ -191,7 +192,7 @@ function App() {
     loadFromChain()
     
     return () => { mounted = false }
-  }, [contractInfo, lastVote, account])
+  }, [contractInfo, chainRefreshNonce, account])
 
   // Check voting period status
   useEffect(() => {
@@ -250,7 +251,7 @@ function App() {
     // Check every 10 seconds to update status in real-time
     const interval = setInterval(checkVotingStatus, 10000)
     return () => clearInterval(interval)
-  }, [contractInfo, selectedAddress, lastVote])
+  }, [contractInfo, selectedAddress, chainRefreshNonce])
 
   // Auto-login when account is connected and owner address is known
   useEffect(() => {
@@ -359,6 +360,11 @@ function App() {
     setLoginTrigger(0) // Reset trigger back to 0
     setToast({ message: 'Logged out', type: 'success' })
   }
+
+  // Keep receipt scoped to the currently connected wallet.
+  useEffect(() => {
+    setLastVote(null)
+  }, [account])
 
   const handleVote = async (candidateId) => {
     if (!account) {
@@ -472,6 +478,7 @@ function App() {
           } catch {}
           setToast({ message: `Vote submitted${cid ? ` (CID: ${cid.slice(0,10)}…)` : ''}. It may take a moment to finalize.`, type: 'success' })
           setLastVote({ cid, voteHash, candidateId, txHash, timestamp: Date.now(), voterAddress: account })
+          setChainRefreshNonce(prev => prev + 1)
         } catch (txErr) {
           console.error('on-chain vote error', txErr)
           setToast({ message: `On-chain vote failed: ${txErr?.message || txErr}`, type: 'error' })
@@ -479,6 +486,7 @@ function App() {
       } else {
         setToast({ message: `Vote stored on IPFS (CID: ${cid.slice(0,10)}…)`, type: 'success' })
         setLastVote({ cid, voteHash, candidateId, timestamp: Date.now(), voterAddress: account })
+        setChainRefreshNonce(prev => prev + 1)
       }
     } catch (e) {
       console.error('vote error', e)
@@ -495,7 +503,7 @@ function App() {
     try {
       await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainIdHex }] })
       setToast({ message: 'Switched network in wallet', type: 'success' })
-      setLastVote({ ...(lastVote || {}), _ts: Date.now() })
+      setChainRefreshNonce(prev => prev + 1)
     } catch (err) {
       // If the chain is not added to MetaMask, add it
       if (err && err.code === 4902) {
@@ -778,7 +786,7 @@ function App() {
             <div className="muted" style={{fontSize:13}}>
               {contractInfo ? (networkMismatch ? 'Contract found, but wallet is on a different network' : 'Showing on-chain candidates') : 'Showing backend candidates'}
             </div>
-            <button className="vote-btn" style={{background:'#374151'}} onClick={() => setLastVote({ ...lastVote })}>Refresh tally</button>
+            <button className="vote-btn" style={{background:'#374151'}} onClick={() => setChainRefreshNonce(prev => prev + 1)}>Refresh tally</button>
           </div>
           {contractInfo && networkMismatch && (
             <div className="card" style={{marginTop:12, background:'#fff7ed', color:'#9a3412'}}>
@@ -873,7 +881,7 @@ function App() {
               contractInfo={contractInfo}
               selectedAddress={selectedAddress}
               networkMismatch={networkMismatch}
-              onActionSuccess={() => setLastVote({ ...lastVote })}
+              onActionSuccess={() => setChainRefreshNonce(prev => prev + 1)}
             />
           )}
         </div>
