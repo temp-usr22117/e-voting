@@ -1,7 +1,7 @@
 import React from 'react'
 
 const VoteReceipt = ({ vote, candidateName }) => {
-  if (!vote) return null
+  if (!vote || !vote.candidateId) return null
 
   const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleString()
