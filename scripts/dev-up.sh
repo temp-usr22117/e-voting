@@ -5,6 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 GANACHE_PID=""
+MIGRATE_RESET=false
+
+if [[ "${1:-}" == "--reset" ]]; then
+  MIGRATE_RESET=true
+fi
 
 cleanup() {
   if [[ -n "$GANACHE_PID" ]]; then
@@ -43,7 +48,11 @@ else
 fi
 
 echo "Running Truffle migrate..."
-npx truffle migrate --config truffle-config.cjs --network development
+if [[ "$MIGRATE_RESET" == "true" ]]; then
+  npx truffle migrate --config truffle-config.cjs --reset --network development
+else
+  npx truffle migrate --config truffle-config.cjs --network development
+fi
 
 echo "Starting backend + frontend..."
 npm run start:all
