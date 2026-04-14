@@ -7,6 +7,7 @@
     "frontend"
   ],
   "scripts": {
+    "dev:up": "bash ./scripts/dev-up.sh",
     "start:all": "concurrently \"npm:server\" \"npm:client\"",
     "server": "cd backend && npm start",
     "client": "cd frontend && npm start",
