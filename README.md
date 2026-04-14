@@ -79,14 +79,13 @@ cd backend && npm install
 cd ../frontend && npm install
 cd ..
 
-# 3. Start Ganache
-./start-ganache.sh
-# Or open Ganache GUI on port 7545
+# 3. One-command local startup (recommended)
+npm run dev:up
+# This starts Ganache (if needed), migrates contracts, and starts backend + frontend
 
-# 4. Deploy smart contract locally
-npx truffle migrate --reset --network development
-#use --reset only when you make major changes and want to reset the session
-# Note the deployed contract address
+# Optional: force clean local state when needed
+npm run dev:up:reset
+# Use reset only after contract/migration changes or to wipe old local votes/candidates
 
 # 5. Configure environment variables
 cp backend/.env.example backend/.env
@@ -103,11 +102,11 @@ cp frontend/.env.example frontend/.env
 # - VITE_CONTRACT_ADDRESS=(from step 4)
 # - VITE_CHAIN_ID=1337
 
-# 6. Start backend
-cd backend && npm start
-
-# 7. Start frontend (new terminal)
-cd frontend && npm start
+# Manual mode (if you don't use one-command startup):
+# ./start-ganache.sh
+# npx truffle migrate --config truffle-config.cjs --network development
+# cd backend && npm start
+# cd frontend && npm start
 ```
 
 **Configure MetaMask for Local:**
@@ -255,21 +254,19 @@ Blockchain-e-voting/
 - **Etherscan**: https://sepolia.etherscan.io/address/0xD08Bbdcb80496e4d53a0Ae769b535306Bb513716
 
 **Local Development:**
-- Deploy your own contract on Ganache using `npx truffle migrate --reset --network development`
+- Daily startup: `npm run dev:up`
+- Fresh local reset: `npm run dev:up:reset`
 - Use the deployed address in your local `.env` files
 
 ## 🧪 Testing
 
 **Local Testing:**
 ```bash
-# Start Ganache
-./start-ganache.sh
+# Daily startup (keeps local chain state)
+npm run dev:up
 
-# Deploy contract
-npx truffle migrate --reset --network development
-
-# Run application
-npm run start:all
+# Fresh test run (resets local chain state)
+npm run dev:up:reset
 ```
 
 **Production Testing:**

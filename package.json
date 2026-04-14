@@ -7,6 +7,8 @@
     "frontend"
   ],
   "scripts": {
+    "dev:up": "bash ./scripts/dev-up.sh",
+    "dev:up:reset": "bash ./scripts/dev-up.sh --reset",
     "start:all": "concurrently \"npm:server\" \"npm:client\"",
     "server": "cd backend && npm start",
     "client": "cd frontend && npm start",

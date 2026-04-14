@@ -1,5 +1,14 @@
 # Local Startup Guide
 
+One-command startup:
+
+npm run dev:up
+
+This command will:
+- Start Ganache (if not already running)
+- Run Truffle migrate
+- Start backend and frontend
+
 Follow these commands from the project root.
 
 1. Go to project folder
