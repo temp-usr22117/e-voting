@@ -28,6 +28,7 @@ function App() {
   const [contractInfo, setContractInfo] = useState(null)
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [chainCandidates, setChainCandidates] = useState(null)
+  const [currentElectionId, setCurrentElectionId] = useState(null)
   const [networkMismatch, setNetworkMismatch] = useState(null)
   const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(null)
   const [ownerAddress, setOwnerAddress] = useState(null)
@@ -118,6 +119,7 @@ function App() {
             if (mounted) {
               setNetworkMismatch({ currentId, targetId })
               setChainCandidates(null)
+              setCurrentElectionId(null)
             }
             return
           }
@@ -129,6 +131,14 @@ function App() {
         
         const election = new web3.eth.Contract(contractInfo.abi, electionAddress)
         if (mounted) setSelectedAddress(electionAddress)
+
+        // Read current election round when contract supports lifecycle flow.
+        try {
+          const roundId = await election.methods.currentElectionId().call()
+          if (mounted) setCurrentElectionId(Number(roundId))
+        } catch (_) {
+          if (mounted) setCurrentElectionId(null)
+        }
         
         const count = await election.methods.candidatesCount().call()
         const list = []
@@ -720,6 +730,20 @@ function App() {
                         </span>
                       )}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Election Round */}
+              {contractInfo && !networkMismatch && (
+                <div>
+                  <div className="muted" style={{fontSize:12,marginBottom:4}}>Election Round</div>
+                  <div className="info-box" style={{fontSize:13}}>
+                    {currentElectionId ? (
+                      <span className="network-ok">Round #{currentElectionId}</span>
+                    ) : (
+                      <span className="muted">Not available</span>
+                    )}
                   </div>
                 </div>
               )}
