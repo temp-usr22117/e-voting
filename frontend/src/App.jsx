@@ -930,9 +930,29 @@ function App() {
         />
 
         <div className="hero">
-          <div>
+          <div className="hero-copy">
+            <div className="hero-badge">Classroom-ready blockchain voting</div>
             <h1>Secure, transparent e‑voting</h1>
             <p>Sign in with your wallet, register, and cast a verifiable vote. Prototype uses Ethereum + IPFS.</p>
+          </div>
+
+          <div className="hero-panel">
+            <div className="hero-stat">
+              <span>Election round</span>
+              <strong>{currentElectionId ? `#${currentElectionId}` : '—'}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Candidate pool</span>
+              <strong>{(chainCandidates ? chainCandidates.length : candidates.length) || '—'}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Voting status</span>
+              <strong>{votingStatus === 'active' ? 'Live' : votingStatus === 'ended' ? 'Closed' : votingStatus === 'upcoming' ? 'Upcoming' : 'Checking'}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Network</span>
+              <strong>{contractInfo ? (networkMismatch ? `${networkMismatch.currentId} → ${networkMismatch.targetId}` : contractInfo.networkId) : '—'}</strong>
+            </div>
           </div>
         </div>
 

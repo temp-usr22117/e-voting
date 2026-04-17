@@ -54,6 +54,19 @@ body::before {
   opacity: 0.8; /* adjust transparency */
 }
 
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.18), transparent 28%),
+    radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.16), transparent 24%),
+    radial-gradient(circle at 90% 85%, rgba(99, 102, 241, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.42), rgba(248, 250, 252, 0.68));
+}
+
 /* Blockchain-themed animated background
 body::before {
   content: '';
@@ -113,13 +126,13 @@ body.dark-mode::after {
   100% { background-position: 0% 50%; }
 }
 
-.app-shell{max-width:1100px;margin:32px auto;padding:24px;}
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.app-shell{max-width:1240px;margin:24px auto;padding:24px 24px 44px;}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .brand{display:flex;align-items:center;gap:12px}
-.logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-600));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+.logo{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent-600));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;letter-spacing:0.5px;box-shadow:0 16px 30px rgba(37,99,235,0.24)}
 .title{
-  font-size:20px;
-  font-weight:700;
+  font-size:21px;
+  font-weight:800;
   color: var(--text-primary);
   transition: color 0.3s ease;
 }
@@ -129,22 +142,24 @@ body.dark-mode::after {
   transition: color 0.3s ease;
 }
 
-.layout{display:grid;grid-template-columns:320px 1fr;gap:20px}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
 
 .card{
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.82));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 20px;
   padding: 18px;
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.09), 0 2px 10px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  transition: transform 0.2s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+.card:hover{transform:translateY(-1px)}
 
 body.dark-mode .card{
   background: rgba(10, 10, 10, 0.95);
-  box-shadow: 0 8px 32px rgba(96, 165, 250, 0.15), 0 2px 8px rgba(96, 165, 250, 0.1);
+  box-shadow: 0 12px 40px rgba(96, 165, 250, 0.16), 0 2px 8px rgba(96, 165, 250, 0.1);
   border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
@@ -152,21 +167,31 @@ body.dark-mode .card{
 
 .candidate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .candidate-card{
-  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.06), 0 2px 4px rgba(2, 6, 23, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.08), 0 2px 4px rgba(2, 6, 23, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.64);
   display: flex;
   flex-direction: column;
   gap: 12px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease, border-color 0.3s ease;
 }
 .candidate-card:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.1), 0 4px 8px rgba(2, 6, 23, 0.05);
+  transform: translateY(-4px);
+  box-shadow: 0 18px 32px rgba(2, 6, 23, 0.12), 0 6px 12px rgba(2, 6, 23, 0.05);
+}
+
+.candidate-card::before{
+  content:'';
+  position:absolute;
+  inset:0 0 auto 0;
+  height:4px;
+  background: linear-gradient(90deg, var(--accent), var(--success));
 }
 
 body.dark-mode .candidate-card{
@@ -181,15 +206,28 @@ body.dark-mode .candidate-card:hover{
 }
 .candidate-name{font-weight:600;font-size:16px}
 .candidate-meta{color:var(--muted);font-size:13px}
-.vote-btn{background:var(--accent);color:white;border:0;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+.vote-btn{
+  background: linear-gradient(135deg, var(--accent), var(--accent-600));
+  color:white;
+  border:0;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:700;
+  box-shadow: 0 10px 18px rgba(37,99,235,0.22);
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease, filter .15s ease;
+}
+.vote-btn:hover{transform:translateY(-1px);filter:saturate(1.05)}
+.vote-btn:active{transform:translateY(0)}
 .vote-btn:disabled{opacity:0.6;cursor:not-allowed}
 
 .muted{color:var(--muted)}
 
 .user-info{
-  background:linear-gradient(90deg, rgba(37,99,235,0.06), rgba(16,185,129,0.03));
+  background:linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.05));
   padding:12px;
-  border-radius:8px;
+  border-radius:14px;
+  border: 1px solid rgba(148,163,184,0.2);
   transition: background 0.3s ease;
 }
 
@@ -228,8 +266,46 @@ button{cursor:pointer}
 
 /* Hero & footer */
 .hero{margin:16px 0 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.hero h1{margin:0;font-size:28px;color:var(--text-primary);transition:color 0.3s ease}
-.hero p{margin:6px 0 0;color:var(--muted);transition:color 0.3s ease}
+.hero{
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.86), rgba(255,255,255,0.58));
+  border: 1px solid rgba(255,255,255,0.72);
+  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.08);
+}
+.hero-copy{max-width: 720px}
+.hero h1{margin:0;font-size:30px;letter-spacing:-0.03em;color:var(--text-primary);transition:color 0.3s ease}
+.hero-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  margin-bottom:10px;
+  border-radius:999px;
+  background: rgba(37,99,235,0.1);
+  color: var(--accent-600);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:0.02em;
+}
+.hero p{margin:6px 0 0;color:var(--muted);transition:color 0.3s ease;font-size:15px;line-height:1.6}
+.hero-panel{
+  min-width: 290px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.hero-stat{
+  padding:12px 14px;
+  border-radius:16px;
+  background: rgba(255,255,255,0.72);
+  border:1px solid rgba(148,163,184,0.18);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.hero-stat span{font-size:12px;color:var(--muted);font-weight:600}
+.hero-stat strong{font-size:18px;letter-spacing:-0.02em;color:var(--text-primary)}
 .footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
 
 /* Headings */
@@ -285,9 +361,9 @@ body.dark-mode .info-box{
 /* Diagnostic strip card */
 .diagnostic-card{
   padding: 8px 12px;
-  border-radius: 8px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(239,246,255,0.92), rgba(224,242,254,0.72));
+  border: 1px solid rgba(191,219,254,0.9);
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
@@ -309,6 +385,26 @@ body.dark-mode .network-ok{
 .network-error{
   color: #dc2626;
   transition: color 0.3s ease;
+}
+
+/* Extra UI polish */
+.info-box{border:1px solid rgba(226,232,240,0.9);border-radius:10px}
+.badge{box-shadow:0 8px 16px rgba(15,23,42,0.12)}
+.muted-small{letter-spacing:0.02em;text-transform:uppercase}
+
+/* Voting / receipt / admin visual polish */
+.card h2, .card h3{letter-spacing:-0.02em}
+.card > div:first-child h2, .card > div:first-child h3{margin-bottom:0}
+
+@media (max-width: 980px){
+  .hero{flex-direction:column;align-items:stretch}
+  .hero-panel{min-width:unset;grid-template-columns:1fr 1fr}
+}
+
+@media (max-width: 600px){
+  .hero-panel{grid-template-columns:1fr}
+  .hero h1{font-size:26px}
+  .app-shell{padding:16px}
 }
 
 body.dark-mode .network-error{
