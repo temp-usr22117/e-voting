@@ -59,6 +59,29 @@ function App() {
     setDarkMode(!darkMode)
   }
 
+  const totalVotesCast = (chainCandidates || []).reduce((sum, c) => sum + Number(c.voteCount || 0), 0)
+
+  const getVotingWindowSummary = () => {
+    if (!votingPeriod || votingStatus === 'loading') return 'Checking...'
+    if (votingStatus === 'not-set') return 'Not set'
+
+    const now = Math.floor(Date.now() / 1000)
+    const startsIn = votingPeriod.start - now
+    const endsIn = votingPeriod.end - now
+
+    const toClock = (seconds) => {
+      const s = Math.max(0, seconds)
+      const hours = Math.floor(s / 3600)
+      const minutes = Math.floor((s % 3600) / 60)
+      if (hours > 0) return `${hours}h ${minutes}m`
+      return `${minutes}m`
+    }
+
+    if (votingStatus === 'upcoming') return `Starts in ${toClock(startsIn)}`
+    if (votingStatus === 'active') return `Ends in ${toClock(endsIn)}`
+    return 'Closed'
+  }
+
   useEffect(() => {
     async function init() {
       if (window.ethereum) {
@@ -928,6 +951,31 @@ function App() {
           darkMode={darkMode}
           onToggleDarkMode={toggleDarkMode}
         />
+
+        <div className="health-strip" role="status" aria-live="polite">
+          <div className="health-item">
+            <span className="health-label">Round</span>
+            <strong className="health-value">{currentElectionId ? `#${currentElectionId}` : '—'}</strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Votes Cast</span>
+            <strong className="health-value">{totalVotesCast}</strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Registration</span>
+            <strong className="health-value">{isRegisteredOnChain === null ? 'Checking...' : isRegisteredOnChain ? 'Registered' : 'Not Registered'}</strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Network</span>
+            <strong className={`health-value ${networkMismatch ? 'health-bad' : 'health-good'}`}>
+              {networkMismatch ? `Mismatch ${networkMismatch.currentId} → ${networkMismatch.targetId}` : contractInfo ? `OK ${contractInfo.networkId}` : '—'}
+            </strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Voting Window</span>
+            <strong className="health-value">{getVotingWindowSummary()}</strong>
+          </div>
+        </div>
 
         <div className="hero">
           <div className="hero-copy">
