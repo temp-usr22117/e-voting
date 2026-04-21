@@ -61,6 +61,25 @@ function App() {
 
   const totalVotesCast = (chainCandidates || []).reduce((sum, c) => sum + Number(c.voteCount || 0), 0)
 
+  const voteSparkValues = (() => {
+    const source = chainCandidates && chainCandidates.length ? chainCandidates : candidates
+    if (!source || !source.length) return []
+    return source.map((c) => Number(c.voteCount || 0))
+  })()
+
+  const voteSparkMax = voteSparkValues.length ? Math.max(...voteSparkValues, 1) : 1
+
+  const votingWindowProgress = (() => {
+    if (!votingPeriod || votingStatus === 'loading' || votingStatus === 'not-set') return 0
+    if (votingStatus === 'ended') return 100
+    if (votingStatus === 'upcoming') return 0
+
+    const now = Math.floor(Date.now() / 1000)
+    const total = Math.max(1, votingPeriod.end - votingPeriod.start)
+    const elapsed = Math.min(Math.max(0, now - votingPeriod.start), total)
+    return Math.round((elapsed / total) * 100)
+  })()
+
   const getVotingWindowSummary = () => {
     if (!votingPeriod || votingStatus === 'loading') return 'Checking...'
     if (votingStatus === 'not-set') return 'Not set'
@@ -960,6 +979,18 @@ function App() {
           <div className="health-item">
             <span className="health-label">Votes Cast</span>
             <strong className="health-value">{totalVotesCast}</strong>
+            <div className="health-sparkline" aria-hidden="true">
+              {voteSparkValues.length ? voteSparkValues.map((value, idx) => (
+                <span
+                  key={`vote-spark-${idx}`}
+                  className="health-spark-bar"
+                  style={{ height: `${Math.max(14, Math.round((value / voteSparkMax) * 100))}%` }}
+                  title={`Candidate ${idx + 1}: ${value} votes`}
+                />
+              )) : (
+                <span className="health-spark-placeholder">No votes</span>
+              )}
+            </div>
           </div>
           <div className="health-item">
             <span className="health-label">Registration</span>
@@ -974,6 +1005,9 @@ function App() {
           <div className="health-item">
             <span className="health-label">Voting Window</span>
             <strong className="health-value">{getVotingWindowSummary()}</strong>
+            <div className="health-progress" aria-hidden="true">
+              <span className="health-progress-fill" style={{ width: `${votingWindowProgress}%` }} />
+            </div>
           </div>
         </div>
 
