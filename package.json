@@ -15,7 +15,7 @@
     "test": "cd backend && npm test || true"
   },
   "devDependencies": {
-    "baseline-browser-mapping": "^2.9.19",
+    "baseline-browser-mapping": "^2.11.24",
     "concurrently": "^8.0.0"
   },
   "dependencies": {
