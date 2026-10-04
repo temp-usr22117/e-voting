@@ -28,6 +28,7 @@ function App() {
   const [contractInfo, setContractInfo] = useState(null)
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [chainCandidates, setChainCandidates] = useState(null)
+  const [currentElectionId, setCurrentElectionId] = useState(null)
   const [networkMismatch, setNetworkMismatch] = useState(null)
   const [isRegisteredOnChain, setIsRegisteredOnChain] = useState(null)
   const [ownerAddress, setOwnerAddress] = useState(null)
@@ -56,6 +57,48 @@ function App() {
   
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
+  }
+
+  const totalVotesCast = (chainCandidates || []).reduce((sum, c) => sum + Number(c.voteCount || 0), 0)
+
+  const voteSparkValues = (() => {
+    const source = chainCandidates && chainCandidates.length ? chainCandidates : candidates
+    if (!source || !source.length) return []
+    return source.map((c) => Number(c.voteCount || 0))
+  })()
+
+  const voteSparkMax = voteSparkValues.length ? Math.max(...voteSparkValues, 1) : 1
+
+  const votingWindowProgress = (() => {
+    if (!votingPeriod || votingStatus === 'loading' || votingStatus === 'not-set') return 0
+    if (votingStatus === 'ended') return 100
+    if (votingStatus === 'upcoming') return 0
+
+    const now = Math.floor(Date.now() / 1000)
+    const total = Math.max(1, votingPeriod.end - votingPeriod.start)
+    const elapsed = Math.min(Math.max(0, now - votingPeriod.start), total)
+    return Math.round((elapsed / total) * 100)
+  })()
+
+  const getVotingWindowSummary = () => {
+    if (!votingPeriod || votingStatus === 'loading') return 'Checking...'
+    if (votingStatus === 'not-set') return 'Not set'
+
+    const now = Math.floor(Date.now() / 1000)
+    const startsIn = votingPeriod.start - now
+    const endsIn = votingPeriod.end - now
+
+    const toClock = (seconds) => {
+      const s = Math.max(0, seconds)
+      const hours = Math.floor(s / 3600)
+      const minutes = Math.floor((s % 3600) / 60)
+      if (hours > 0) return `${hours}h ${minutes}m`
+      return `${minutes}m`
+    }
+
+    if (votingStatus === 'upcoming') return `Starts in ${toClock(startsIn)}`
+    if (votingStatus === 'active') return `Ends in ${toClock(endsIn)}`
+    return 'Closed'
   }
 
   useEffect(() => {
@@ -118,6 +161,7 @@ function App() {
             if (mounted) {
               setNetworkMismatch({ currentId, targetId })
               setChainCandidates(null)
+              setCurrentElectionId(null)
             }
             return
           }
@@ -129,6 +173,14 @@ function App() {
         
         const election = new web3.eth.Contract(contractInfo.abi, electionAddress)
         if (mounted) setSelectedAddress(electionAddress)
+
+        // Read current election round when contract supports lifecycle flow.
+        try {
+          const roundId = await election.methods.currentElectionId().call()
+          if (mounted) setCurrentElectionId(Number(roundId))
+        } catch (_) {
+          if (mounted) setCurrentElectionId(null)
+        }
         
         const count = await election.methods.candidatesCount().call()
         const list = []
@@ -724,6 +776,20 @@ function App() {
                 </div>
               )}
 
+              {/* Election Round */}
+              {contractInfo && !networkMismatch && (
+                <div>
+                  <div className="muted" style={{fontSize:12,marginBottom:4}}>Election Round</div>
+                  <div className="info-box" style={{fontSize:13}}>
+                    {currentElectionId ? (
+                      <span className="network-ok">Round #{currentElectionId}</span>
+                    ) : (
+                      <span className="muted">Not available</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Registration Status */}
               <div>
                 <div className="muted" style={{fontSize:12,marginBottom:4}}>Registration Status</div>
@@ -905,10 +971,70 @@ function App() {
           onToggleDarkMode={toggleDarkMode}
         />
 
+        <div className="health-strip" role="status" aria-live="polite">
+          <div className="health-item">
+            <span className="health-label">Round</span>
+            <strong className="health-value">{currentElectionId ? `#${currentElectionId}` : '—'}</strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Votes Cast</span>
+            <strong className="health-value">{totalVotesCast}</strong>
+            <div className="health-sparkline" aria-hidden="true">
+              {voteSparkValues.length ? voteSparkValues.map((value, idx) => (
+                <span
+                  key={`vote-spark-${idx}`}
+                  className="health-spark-bar"
+                  style={{ height: `${Math.max(14, Math.round((value / voteSparkMax) * 100))}%` }}
+                  title={`Candidate ${idx + 1}: ${value} votes`}
+                />
+              )) : (
+                <span className="health-spark-placeholder">No votes</span>
+              )}
+            </div>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Registration</span>
+            <strong className="health-value">{isRegisteredOnChain === null ? 'Checking...' : isRegisteredOnChain ? 'Registered' : 'Not Registered'}</strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Network</span>
+            <strong className={`health-value ${networkMismatch ? 'health-bad' : 'health-good'}`}>
+              {networkMismatch ? `Mismatch ${networkMismatch.currentId} → ${networkMismatch.targetId}` : contractInfo ? `OK ${contractInfo.networkId}` : '—'}
+            </strong>
+          </div>
+          <div className="health-item">
+            <span className="health-label">Voting Window</span>
+            <strong className="health-value">{getVotingWindowSummary()}</strong>
+            <div className="health-progress" aria-hidden="true">
+              <span className="health-progress-fill" style={{ width: `${votingWindowProgress}%` }} />
+            </div>
+          </div>
+        </div>
+
         <div className="hero">
-          <div>
+          <div className="hero-copy">
+            <div className="hero-badge">Classroom-ready blockchain voting</div>
             <h1>Secure, transparent e‑voting</h1>
             <p>Sign in with your wallet, register, and cast a verifiable vote. Prototype uses Ethereum + IPFS.</p>
+          </div>
+
+          <div className="hero-panel">
+            <div className="hero-stat">
+              <span>Election round</span>
+              <strong>{currentElectionId ? `#${currentElectionId}` : '—'}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Candidate pool</span>
+              <strong>{(chainCandidates ? chainCandidates.length : candidates.length) || '—'}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Voting status</span>
+              <strong>{votingStatus === 'active' ? 'Live' : votingStatus === 'ended' ? 'Closed' : votingStatus === 'upcoming' ? 'Upcoming' : 'Checking'}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Network</span>
+              <strong>{contractInfo ? (networkMismatch ? `${networkMismatch.currentId} → ${networkMismatch.targetId}` : contractInfo.networkId) : '—'}</strong>
+            </div>
           </div>
         </div>
 

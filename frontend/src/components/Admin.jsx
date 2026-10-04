@@ -20,6 +20,7 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
   const [currentVotingPeriod, setCurrentVotingPeriod] = useState(null)
   const [votingStatus, setVotingStatus] = useState('not-set')
   const [votingPeriodSet, setVotingPeriodSet] = useState(false)
+  const [electionFinalized, setElectionFinalized] = useState(false)
   
   // Track when account changes to update isOwner
   useEffect(() => {
@@ -53,9 +54,16 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
         const start = await election.methods.votingStart().call()
         const end = await election.methods.votingEnd().call()
         const periodSet = await election.methods.votingPeriodSet().call()
+        let finalized = false
+        try {
+          finalized = await election.methods.electionFinalized().call()
+        } catch (_) {
+          finalized = false
+        }
         
         if (!mounted) return
         setVotingPeriodSet(periodSet)
+        setElectionFinalized(!!finalized)
         
         if (periodSet) {
           setCurrentVotingPeriod({ start: Number(start), end: Number(end) })
@@ -263,6 +271,87 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
     }
   }
 
+  async function finalizeElection() {
+    if (!account || !contractInfo) return
+
+    if (votingStatus !== 'ended') {
+      setNote('You can finalize only after voting has ended')
+      return
+    }
+
+    setNote('')
+    setBusy(true)
+    setTxStatus('pending')
+    setTxHash(null)
+    setTxError(null)
+
+    try {
+      const web3 = new Web3(window.ethereum)
+      const contractAddr = selectedAddress || contractInfo.address
+      const election = new web3.eth.Contract(contractInfo.abi, contractAddr)
+      const receipt = await election.methods.finalizeElection().send({ from: account, gas: 200000 })
+      setTxHash(receipt.transactionHash)
+      setTxStatus('success')
+      setElectionFinalized(true)
+      setNote('Election finalized. Export records and reset when ready.')
+      onActionSuccess && onActionSuccess()
+
+      setTimeout(() => {
+        setTxStatus(null)
+      }, 3000)
+    } catch (e) {
+      console.error('finalizeElection error:', e)
+      setTxStatus('error')
+      setTxError(e.message)
+      setNote('Failed to finalize election: ' + e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resetElection() {
+    if (!account || !contractInfo) return
+
+    if (!electionFinalized) {
+      setNote('Finalize election before resetting')
+      return
+    }
+
+    setNote('')
+    setBusy(true)
+    setTxStatus('pending')
+    setTxHash(null)
+    setTxError(null)
+
+    try {
+      const web3 = new Web3(window.ethereum)
+      const contractAddr = selectedAddress || contractInfo.address
+      const election = new web3.eth.Contract(contractInfo.abi, contractAddr)
+      const receipt = await election.methods.resetElection().send({ from: account, gas: 600000 })
+      setTxHash(receipt.transactionHash)
+      setTxStatus('success')
+      setElectionFinalized(false)
+      setVotingPeriodSet(false)
+      setCurrentVotingPeriod(null)
+      setVotingStatus('not-set')
+      setVotingStart('')
+      setVotingEnd('')
+      setNote('Election reset for next round. Set a new voting period to start again.')
+      onActionSuccess && onActionSuccess()
+
+      setTimeout(() => {
+        setTxStatus(null)
+      }, 3000)
+    } catch (e) {
+      console.error('resetElection error:', e)
+      setTxStatus('error')
+      setTxError(e.message)
+      setNote('Failed to reset election: ' + e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function exportVotesData() {
     if (!contractInfo || !account) return
     
@@ -372,6 +461,9 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
                 '🔴 Ended'
               }
             </div>
+            <div style={{fontSize:12, marginBottom:4, color: electionFinalized ? '#b45309' : '#6b7280'}}>
+              Lifecycle: {electionFinalized ? '✅ Finalized' : '📝 Open'}
+            </div>
             {currentVotingPeriod && (
               <div style={{fontSize:12, color:'#6b7280'}}>
                 Start: {new Date(currentVotingPeriod.start * 1000).toLocaleString()}<br/>
@@ -398,7 +490,35 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
                   {busy ? 'Exporting...' : '📥 Download Election Results (CSV)'}
                 </button>
                 <div style={{fontSize:11, color:'#6b7280', marginTop:6}}>
-                  💡 Tip: Export results before scheduling a new voting period
+                  💡 Tip: Export results before finalizing and resetting this election
+                </div>
+              </div>
+            )}
+
+            {/* Election Lifecycle Controls */}
+            {votingStatus === 'ended' && (
+              <div style={{padding:'12px', background:'#f8fafc', borderRadius:'8px', border:'1px solid #cbd5e1'}}>
+                <label className="muted" style={{fontSize:13, fontWeight:600}}>⚙️ Election Lifecycle</label>
+                <div style={{display:'flex', gap:8, marginTop:8}}>
+                  <button
+                    className="vote-btn"
+                    onClick={finalizeElection}
+                    disabled={busy || electionFinalized}
+                    style={{flex:1, background: electionFinalized ? '#d1d5db' : '#0ea5e9'}}
+                  >
+                    {electionFinalized ? 'Finalized' : 'Finalize Election'}
+                  </button>
+                  <button
+                    className="vote-btn"
+                    onClick={resetElection}
+                    disabled={busy || !electionFinalized}
+                    style={{flex:1, background: !electionFinalized ? '#d1d5db' : '#f97316'}}
+                  >
+                    Reset Election
+                  </button>
+                </div>
+                <div style={{fontSize:11, color:'#64748b', marginTop:6}}>
+                  Finalize after voting ends, then reset to clear tallies for the next round.
                 </div>
               </div>
             )}
@@ -431,7 +551,7 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
                   <button 
                     className="vote-btn" 
                     onClick={setVotingPeriod} 
-                    disabled={busy || votingStatus === 'active'}
+                    disabled={busy || votingStatus === 'active' || electionFinalized}
                     style={{flex:1, background: votingStatus === 'active' ? '#d1d5db' : undefined}}
                   >
                     {busy ? 'Setting...' : votingStatus === 'ended' ? 'Schedule New Period' : 'Set Voting Period'}
@@ -469,14 +589,14 @@ function Admin({ account, contractInfo, onActionSuccess, networkMismatch, select
               <label className="muted" style={{fontSize:13}}>Add candidate</label>
               <div style={{display:'flex',gap:8,marginTop:6}}>
                 <input type="text" placeholder="Candidate name" value={candidateName} onChange={e=>setCandidateName(e.target.value)} style={{flex:1}} disabled={busy} />
-                <button className="vote-btn" onClick={addCandidate} disabled={busy}>{busy ? 'Adding...' : 'Add'}</button>
+                <button className="vote-btn" onClick={addCandidate} disabled={busy || electionFinalized}>{busy ? 'Adding...' : 'Add'}</button>
               </div>
             </div>
             <div>
               <label className="muted" style={{fontSize:13}}>Register voter</label>
               <div style={{display:'flex',gap:8,marginTop:6}}>
-                <input type="text" placeholder="0x..." value={voterAddress} onChange={e=>setVoterAddress(e.target.value)} style={{flex:1}} disabled={busy} />
-                <button className="vote-btn" onClick={registerVoter} disabled={busy}>{busy ? 'Registering...' : 'Register'}</button>
+                <input type="text" placeholder="0x..." value={voterAddress} onChange={e=>setVoterAddress(e.target.value)} style={{flex:1}} disabled={busy || electionFinalized} />
+                <button className="vote-btn" onClick={registerVoter} disabled={busy || electionFinalized}>{busy ? 'Registering...' : 'Register'}</button>
               </div>
             </div>
           </div>
